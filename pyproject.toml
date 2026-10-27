@@ -1,0 +1,33 @@
+[build-system]
+requires = ["setuptools>=75"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "asterline-research-assistant"
+version = "0.1.0"
+description = "AI-powered research assistant"
+requires-python = ">=3.11"
+dependencies = [
+    "pydantic-settings>=2.7",
+    "uvicorn[standard]>=0.34",
+    "fastapi>=0.115",
+    "streamlit>=1.41",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.3",
+    "httpx>=0.28",
+    "ruff>=0.8",
+]
+
+# src-layout: importable packages live under src/
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.ruff]
+src = ["src"]
+line-length = 100
