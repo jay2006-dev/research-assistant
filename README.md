@@ -28,6 +28,17 @@ uv run python -c "from asterline.config import Settings; print(Settings().app_na
 # → Asterline Research Assistant
 ```
 
+### One-Command Quick Launch
+
+```powershell
+# Launch the interactive Streamlit UI:
+uv run streamlit run src/asterline/app.py
+# → Opens http://localhost:8501 in your browser
+
+# Run the complete offline benchmark evaluation suite (10 test cases):
+uv run python -m asterline.cli eval
+```
+
 ## Vector Index & Retrieval (Milestone 2)
 
 The assistant uses **ChromaDB** with local embeddings (**`sentence-transformers/all-MiniLM-L6-v2`**, 384 dimensions) for local semantic search.
