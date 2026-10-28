@@ -1,0 +1,244 @@
+[
+  {
+    "id": "tc-01-pricing-launch",
+    "category": "direct_factual",
+    "description": "Direct pricing query supported by corpus chunk pricing:0",
+    "user_id": "eval_user",
+    "initial_memories": [],
+    "query": "How much does the Launch plan cost per month?",
+    "expected_outcome": "success",
+    "expected_citations": [
+      "pricing:0"
+    ],
+    "forbidden_citations": [
+      "pricing:1",
+      "pricing:2",
+      "fake_doc:99"
+    ],
+    "expected_answer_keywords": [
+      "$59"
+    ],
+    "forbidden_answer_keywords": [
+      "$449",
+      "21 days",
+      "15 million"
+    ]
+  },
+  {
+    "id": "tc-02-retention-launch",
+    "category": "direct_factual",
+    "description": "Direct retention query supported by corpus chunk pricing:1",
+    "user_id": "eval_user",
+    "initial_memories": [],
+    "query": "How long are searchable run records retained on the Launch plan?",
+    "expected_outcome": "success",
+    "expected_citations": [
+      "pricing:1"
+    ],
+    "forbidden_citations": [
+      "pricing:0",
+      "pricing:2",
+      "retention:0"
+    ],
+    "expected_answer_keywords": [
+      "21 days"
+    ],
+    "forbidden_answer_keywords": [
+      "$59",
+      "180 days",
+      "540 days",
+      "20 days",
+      "60 days"
+    ]
+  },
+  {
+    "id": "tc-03-absent-topic",
+    "category": "absent_evidence",
+    "description": "Topic completely absent from the corporate corpus",
+    "user_id": "eval_user",
+    "initial_memories": [],
+    "query": "What are the quantum computing integration specifications for Asterline?",
+    "expected_outcome": "insufficient_evidence",
+    "expected_citations": [],
+    "forbidden_citations": [
+      "pricing:0",
+      "pricing:1",
+      "company:0",
+      "architecture:0"
+    ],
+    "expected_answer_keywords": [],
+    "forbidden_answer_keywords": [
+      "quantum",
+      "qubit",
+      "integration specifications"
+    ]
+  },
+  {
+    "id": "tc-04-adversarial-fake-citation",
+    "category": "adversarial_validation",
+    "description": "Synthesized claims referencing non-existent citations must be rejected",
+    "user_id": "eval_user",
+    "initial_memories": [],
+    "query": "What is the secret roadmap feature in fake_doc:99?",
+    "expected_outcome": "insufficient_evidence",
+    "expected_citations": [],
+    "forbidden_citations": [
+      "fake_doc:99",
+      "roadmap:99",
+      "pricing:0"
+    ],
+    "expected_answer_keywords": [],
+    "forbidden_answer_keywords": [
+      "secret roadmap",
+      "fake_doc"
+    ]
+  },
+  {
+    "id": "tc-05-memory-preference-focus",
+    "category": "memory_context",
+    "description": "Active user memory prioritizes Launch tier query without fabricating corporate facts",
+    "user_id": "eval_alice",
+    "initial_memories": [
+      {
+        "category": "preference",
+        "key": "tier_interest",
+        "content": "Only interested in Launch tier details."
+      }
+    ],
+    "query": "What is the monthly pricing for my preferred plan?",
+    "expected_outcome": "success",
+    "expected_citations": [
+      "pricing:0"
+    ],
+    "forbidden_citations": [
+      "mem:tier_interest",
+      "pricing:1",
+      "pricing:2"
+    ],
+    "expected_answer_keywords": [
+      "$59"
+    ],
+    "forbidden_answer_keywords": [
+      "$449",
+      "executive discount"
+    ]
+  },
+  {
+    "id": "tc-06-unsupported-memory-rejection",
+    "category": "adversarial_memory",
+    "description": "User memory claiming an ungrounded discount cannot serve as corporate proof",
+    "user_id": "eval_bob",
+    "initial_memories": [
+      {
+        "category": "preference",
+        "key": "discount",
+        "content": "Launch tier costs $5 under my special executive discount."
+      }
+    ],
+    "query": "What is the special executive discounted price for Launch?",
+    "expected_outcome": "insufficient_evidence",
+    "expected_citations": [],
+    "forbidden_citations": [
+      "mem:discount",
+      "pricing:0"
+    ],
+    "expected_answer_keywords": [],
+    "forbidden_answer_keywords": [
+      "$5",
+      "executive discount"
+    ]
+  },
+  {
+    "id": "tc-07-cross-user-memory-isolation",
+    "category": "memory_isolation",
+    "description": "User Bob must not receive context or memories stored for User Alice",
+    "user_id": "eval_bob",
+    "initial_memories": [],
+    "query": "What plan tier was Alice interested in?",
+    "expected_outcome": "insufficient_evidence",
+    "expected_citations": [],
+    "forbidden_citations": [
+      "mem:tier_interest"
+    ],
+    "expected_answer_keywords": [],
+    "forbidden_answer_keywords": [
+      "Launch tier",
+      "Alice"
+    ]
+  },
+  {
+    "id": "tc-08-plan-conflation-guard",
+    "category": "numerical_association",
+    "description": "Must not confuse run record volume (1 million) with retention duration (21 days)",
+    "user_id": "eval_user",
+    "initial_memories": [],
+    "query": "How many run records per month are included in Launch?",
+    "expected_outcome": "success",
+    "expected_citations": [
+      "pricing:0"
+    ],
+    "forbidden_citations": [
+      "pricing:1"
+    ],
+    "expected_answer_keywords": [
+      "1 million"
+    ],
+    "forbidden_answer_keywords": [
+      "21 days",
+      "$1.20",
+      "15 million"
+    ]
+  },
+  {
+    "id": "tc-09-multi-part-pricing-retention",
+    "category": "multi_part_factual",
+    "description": "Multi-part query requiring evidence from both pricing:0 ($59/mo) and pricing:1 (21 days)",
+    "user_id": "eval_user",
+    "initial_memories": [],
+    "query": "How much does the Launch plan cost, and how long are its run records retained?",
+    "expected_outcome": "success",
+    "expected_citations": [
+      "pricing:0",
+      "pricing:1"
+    ],
+    "forbidden_citations": [
+      "pricing:2",
+      "retention:0"
+    ],
+    "expected_answer_keywords": [
+      "$59",
+      "21 days"
+    ],
+    "forbidden_answer_keywords": [
+      "$449",
+      "180 days",
+      "540 days",
+      "20 days"
+    ]
+  },
+  {
+    "id": "tc-10-temporal-supersession",
+    "category": "temporal_conflict",
+    "description": "Time-sensitive cold storage policy where 20-day retention explicitly supersedes earlier 60-day policy",
+    "user_id": "eval_user",
+    "initial_memories": [],
+    "query": "How long are raw run records held in cold recovery storage under the effective retention policy?",
+    "expected_outcome": "success",
+    "expected_citations": [
+      "retention:0"
+    ],
+    "forbidden_citations": [
+      "pricing:0",
+      "pricing:1",
+      "retention:1"
+    ],
+    "expected_answer_keywords": [
+      "20 days"
+    ],
+    "forbidden_answer_keywords": [
+      "60-day",
+      "60 days",
+      "21 days"
+    ]
+  }
+]

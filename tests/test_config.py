@@ -28,6 +28,16 @@ def test_env_override(monkeypatch):
     assert settings.app_name == "Test App"
 
 
+def test_relevance_distance_setting(monkeypatch):
+    """Settings includes configurable max_relevance_distance defaulting to 0.70."""
+    settings = Settings(_env_file=None)
+    assert settings.max_relevance_distance == 0.70
+
+    monkeypatch.setenv("MAX_RELEVANCE_DISTANCE", "0.65")
+    custom = Settings(_env_file=None)
+    assert custom.max_relevance_distance == 0.65
+
+
 def test_corpus_path_resolves():
     """corpus_abs_path is absolute and points to an existing file.
 
@@ -52,6 +62,88 @@ def test_api_key_not_in_repr():
     assert "super-secret-key-12345" not in text, (
         "api_key value was exposed in repr(settings)"
     )
+
+
+def test_api_key_env_var_aliases(monkeypatch):
+    """Settings accepts both API_KEY and GEMINI_API_KEY environment variables."""
+    # Ensure clean environment
+    monkeypatch.delenv("API_KEY", raising=False)
+    monkeypatch.delenv("GEMINI_API_KEY", raising=False)
+
+    # 1. Neither variable configured -> defaults to empty string
+    empty_settings = Settings(_env_file=None)
+    assert empty_settings.api_key == ""
+
+    # 2. GEMINI_API_KEY populates api_key
+    monkeypatch.setenv("GEMINI_API_KEY", "gemini-test-secret-key-1")
+    gemini_settings = Settings(_env_file=None)
+    assert gemini_settings.api_key == "gemini-test-secret-key-1"
+    assert "gemini-test-secret-key-1" not in repr(gemini_settings)
+
+    # 3. API_KEY populates api_key
+    monkeypatch.delenv("GEMINI_API_KEY", raising=False)
+    monkeypatch.setenv("API_KEY", "api-test-secret-key-2")
+    api_settings = Settings(_env_file=None)
+    assert api_settings.api_key == "api-test-secret-key-2"
+    assert "api-test-secret-key-2" not in repr(api_settings)
+
+
+def test_langsmith_settings_defaults_and_env_propagation(monkeypatch):
+    """LangSmith configuration defaults and environment variable propagation."""
+    import os
+
+    # Clean environment
+    monkeypatch.delenv("LANGSMITH_TRACING", raising=False)
+    monkeypatch.delenv("LANGCHAIN_TRACING_V2", raising=False)
+    monkeypatch.delenv("LANGSMITH_API_KEY", raising=False)
+    monkeypatch.delenv("LANGSMITH_PROJECT", raising=False)
+
+    # Defaults
+    settings = Settings(_env_file=None)
+    assert settings.langsmith_project == "asterline-research-assistant"
+    assert settings.langsmith_tracing is False
+    assert settings.langsmith_api_key == ""
+    assert "fake-ls-key" not in repr(Settings(_env_file=None, langsmith_api_key="fake-ls-key"))
+
+    # When tracing enabled, environment variables are propagated
+    active = Settings(
+        _env_file=None,
+        langsmith_tracing=True,
+        langsmith_api_key="fake-ls-key",
+        langsmith_project="asterline-research-assistant",
+    )
+    assert os.environ.get("LANGSMITH_TRACING") == "true"
+    assert os.environ.get("LANGCHAIN_TRACING_V2") == "true"
+    assert os.environ.get("LANGSMITH_PROJECT") == "asterline-research-assistant"
+    assert os.environ.get("LANGSMITH_API_KEY") == "fake-ls-key"
+
+
+def test_timeout_settings_validation(monkeypatch):
+    """request_timeout and workflow_timeout defaults are valid and enforce positive values."""
+    from pydantic import ValidationError
+
+    # Defaults
+    settings = Settings(_env_file=None)
+    assert settings.request_timeout == 30.0
+    assert settings.workflow_timeout == 120.0
+
+    # Non-positive values fail validation
+    with pytest.raises(ValidationError):
+        Settings(_env_file=None, request_timeout=0.0)
+
+    with pytest.raises(ValidationError):
+        Settings(_env_file=None, request_timeout=-5.0)
+
+    with pytest.raises(ValidationError):
+        Settings(_env_file=None, workflow_timeout=0.0)
+
+    with pytest.raises(ValidationError):
+        Settings(_env_file=None, workflow_timeout=-10.0)
+
+    # Positive overrides succeed
+    custom = Settings(_env_file=None, request_timeout=15.0, workflow_timeout=60.0)
+    assert custom.request_timeout == 15.0
+    assert custom.workflow_timeout == 60.0
 
 
 def test_config_does_not_modify_corpus():

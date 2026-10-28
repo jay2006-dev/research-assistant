@@ -15,7 +15,10 @@ venv/
 
 # Generated data (not the raw corpus)
 data/chroma/
+data/chroma_active_pointer.json
 data/*.db
+data/*.db-wal
+data/*.db-shm
 
 # Caches
 .ruff_cache/
