@@ -837,7 +837,6 @@ class ResilientFailoverProvider(LLMProvider):
                 )
             raise
 
-
 # ── Provider Factory ─────────────────────────────────────────────────────────
 
 def create_provider_from_settings(settings: Any, *, enable_failover: bool = True, **kwargs: Any) -> LLMProvider:
