@@ -33,3 +33,4 @@ data/*.db-shm
 # OS
 .DS_Store
 Thumbs.db
+*.zip

@@ -299,6 +299,26 @@ Category Breakdown:
 
 ---
 
+## LangSmith Evidence
+
+Two representative public LangSmith traces are available for external evaluation, demonstrating both successful grounded research and resilient failure handling:
+
+### Trace 1: Successful Grounded Research Run
+* **Public Trace Link:** [https://smith.langchain.com/public/0f6e55bb-576d-4733-b3bb-b5e94a3edc00/r/01a18391-479d-7564-831a-941d4314cc5c?start_time=2026-10-28T17%3A31%3A38.781852Z](https://smith.langchain.com/public/0f6e55bb-576d-4733-b3bb-b5e94a3edc00/r/01a18391-479d-7564-831a-941d4314cc5c?start_time=2026-10-28T17%3A31%3A38.781852Z)
+* **Category:** Successful Evidence-Grounded Research Run
+* **Query:** `"What is the company research policy?"`
+* **Execution & Agent Flow:** Full LangGraph graph execution through Coordinator, Researcher, Synthesizer, and Validator.
+* **Outcome:** Status `success`. Evaluated query retrieved relevant corpus evidence chunks, synthesized supported claims with grounded chunk citations (`chunk-a1`), and passed verification with zero errors or ungrounded statements.
+
+### Trace 2: Difficult / Failed Provider Run
+* **Public Trace Link:** [https://smith.langchain.com/public/3198b97b-473b-49cc-b8c8-b0848d2d68cc/r/01a18399-4f83-72c0-ad9e-457fc36aa3dd?start_time=2026-10-28T17%3A40%3A25.091265Z](https://smith.langchain.com/public/3198b97b-473b-49cc-b8c8-b0848d2d68cc/r/01a18399-4f83-72c0-ad9e-457fc36aa3dd?start_time=2026-10-28T17%3A40%3A25.091265Z)
+* **Category:** Difficult / Failed Provider Resilience Run
+* **Query:** `"Pricing info"`
+* **Execution & Agent Flow:** Coordinator and Synthesizer encounter an upstream provider error (`504 DEADLINE_EXCEEDED`).
+* **Outcome:** Status `success` (graceful graph handling). Rather than crashing or hallucinating answers, the graph triggered its fallback path: emitted empty claims (`claims: []`), returned clear error diagnostics (`error_message: 'Provider error during synthesis: Upstream 504 DEADLINE_EXCEEDED'`), and preserved citation integrity by emitting 0 ungrounded citations.
+
+---
+
 ## LangSmith Observability & Live Validation Report
 
 ### 1. Reviewer Workspace Access
@@ -343,11 +363,15 @@ To resolve the application-side deadline defect identified during the live run:
 
 ## AI-Use Disclosure
 
-In accordance with academic and submission integrity guidelines, generative AI tools (Google Antigravity / Gemini) were utilized during the development of this project:
-- **Scaffolding & Boilerplate:** Used to generate initial Pydantic schema structures, CLI parser templates, and repetitive mock test fixtures.
-- **Test Generation:** Used to assist in drafting edge-case test matrices (boundary values, malformed JSON strings, SQLite schema migrations).
-- **Iterative Debugging:** Used to diagnose regex edge cases in citation snippet matching and LangSmith context variable interactions.
-- **Human Engineering & Governance:** All architectural decisions (multi-step LangGraph topology, deterministic validator gatekeeper, single-writer SQLite transaction boundaries, secret redaction filters, and offline benchmark metric definitions) were designed, implemented, and verified by human engineering.
+In accordance with academic and submission integrity guidelines, generative AI tools (**Google Antigravity** and **ChatGPT**) were utilized during the development of this project:
+- **Coding Assistance & Scaffolding:** Used to generate initial Pydantic schema structures, Streamlit layout scaffolding, CLI parser templates, and mock test fixtures.
+- **Test Design & Edge Cases:** Used to draft edge-case test matrices (boundary values, malformed JSON strings, SQLite schema migrations, and concurrency isolation).
+- **Iterative Debugging & Evaluation Support:** Used to diagnose regex edge cases in citation snippet matching, LangSmith context variable interactions, and offline evaluation metric formulas.
+- **Human Engineering & Rigorous Verification:** All AI-generated suggestions were verified through:
+  1. *Source-code review:* Independent manual inspection of all graph control flows, memory isolation boundaries, and permanent wipe SQLite operations.
+  2. *Automated testing:* 160 deterministic pytest unit and integration tests passing offline.
+  3. *Corpus integrity checks:* Automated SHA-256 verification of `data/corpus.txt` before and after operations.
+  4. *Trace inspection:* Manual review of LangSmith traces to ensure no sensitive credentials or private user memory tokens escape the sanitization boundaries.
 
 ---
 
