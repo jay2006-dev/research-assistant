@@ -50,6 +50,13 @@ class Settings(BaseSettings):
     corpus_path: str = "data/corpus.txt"
     chroma_persist_dir: str = "data/chroma"
     sqlite_url: str = "sqlite+aiosqlite:///data/asterline.db"
+    active_pointer_file: str = "data/chroma_active_pointer.json"
+    build_lock_file: str = "data/index_build.lock"
+
+    # ── Vector Index & Retrieval (Milestone 2) ───────────────────
+    embedding_model_name: str = "sentence-transformers/all-MiniLM-L6-v2"
+    chroma_collection_name: str = "asterline_knowledge_base"
+    retrieval_top_k: int = 5
 
     # ── Model Provider (placeholder for later milestones) ────────
     model_provider: str = "google"
@@ -80,3 +87,13 @@ class Settings(BaseSettings):
     def chroma_abs_dir(self) -> Path:
         """Absolute path to the Chroma persist directory."""
         return self.resolve_path(self.chroma_persist_dir)
+
+    @property
+    def active_pointer_abs_path(self) -> Path:
+        """Absolute path to the active collection pointer JSON."""
+        return self.resolve_path(self.active_pointer_file)
+
+    @property
+    def build_lock_abs_path(self) -> Path:
+        """Absolute path to the index build lock file."""
+        return self.resolve_path(self.build_lock_file)

@@ -12,7 +12,12 @@ dependencies = [
     "uvicorn[standard]>=0.34",
     "fastapi>=0.115",
     "streamlit>=1.41",
+    "chromadb>=0.6",
+    "sentence-transformers>=3.3",
 ]
+
+[project.scripts]
+asterline = "asterline.cli:main"
 
 [project.optional-dependencies]
 dev = [
@@ -27,6 +32,9 @@ where = ["src"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+markers = [
+    "real_model: Real model smoke tests requiring sentence-transformers weight download and execution (run separately)",
+]
 
 [tool.ruff]
 src = ["src"]
