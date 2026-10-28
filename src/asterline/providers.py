@@ -760,14 +760,105 @@ class SafeGroqProvider(LLMProvider):
         return self._invoke_with_retries(_call_and_parse, prompt, deadline=deadline)
 
 
+# ── Failover Multi-Provider ──────────────────────────────────────────────────
+
+class ResilientFailoverProvider(LLMProvider):
+    """Wraps a primary provider with automatic secondary failover on quota / rate limit errors.
+
+    If the primary provider encounters RateLimitError (HTTP 429 quota exhaustion)
+    or ProviderUnavailableError (HTTP 503 high demand), requests automatically fail over
+    to the secondary provider to ensure continuous application availability.
+    """
+
+    def __init__(
+        self,
+        primary: LLMProvider,
+        secondary: LLMProvider,
+        *,
+        primary_name: str = "Gemini",
+        secondary_name: str = "Groq",
+    ):
+        self.primary = primary
+        self.secondary = secondary
+        self.primary_name = primary_name
+        self.secondary_name = secondary_name
+
+    def _is_failover_error(self, err: Exception) -> bool:
+        if isinstance(err, (RateLimitError, ProviderUnavailableError)):
+            return True
+        msg = str(err).lower()
+        return any(
+            kw in msg
+            for kw in (
+                "rate limit",
+                "ratelimit",
+                "429",
+                "quota",
+                "resource_exhausted",
+                "503",
+                "unavailable",
+                "temporarily unavailable",
+            )
+        )
+
+    def invoke(self, prompt: str, *, deadline: Optional[float] = None) -> str:
+        try:
+            return self.primary.invoke(prompt, deadline=deadline)
+        except Exception as err:
+            if self._is_failover_error(err):
+                logger.warning(
+                    "Primary provider %s encountered %s; failing over to secondary provider %s: %s",
+                    self.primary_name,
+                    type(err).__name__,
+                    self.secondary_name,
+                    err,
+                )
+                return self.secondary.invoke(prompt, deadline=deadline)
+            raise
+
+    def invoke_structured(
+        self, prompt: str, response_model: type, *, deadline: Optional[float] = None
+    ) -> Any:
+        try:
+            return self.primary.invoke_structured(
+                prompt, response_model=response_model, deadline=deadline
+            )
+        except Exception as err:
+            if self._is_failover_error(err):
+                logger.warning(
+                    "Primary provider %s encountered %s; failing over to secondary provider %s: %s",
+                    self.primary_name,
+                    type(err).__name__,
+                    self.secondary_name,
+                    err,
+                )
+                return self.secondary.invoke_structured(
+                    prompt, response_model=response_model, deadline=deadline
+                )
+            raise
+
+
 # ── Provider Factory ─────────────────────────────────────────────────────────
 
-def create_provider_from_settings(settings: Any, **kwargs: Any) -> LLMProvider:
+def create_provider_from_settings(settings: Any, *, enable_failover: bool = True, **kwargs: Any) -> LLMProvider:
     """Instantiate the configured provider from application Settings.
 
     Defaults to SafeGeminiProvider unless LLM_PROVIDER or MODEL_PROVIDER is explicitly 'groq'.
+    When Gemini is primary and a Groq API key is present, automatically wraps in a
+    ResilientFailoverProvider so quota exhaustion (HTTP 429) fails over to Groq seamlessly.
     """
     provider_name = str(getattr(settings, "model_provider", "gemini")).lower()
     if provider_name == "groq":
         return SafeGroqProvider.from_settings(settings, **kwargs)
-    return SafeGeminiProvider.from_settings(settings, **kwargs)
+
+    primary = SafeGeminiProvider.from_settings(settings, **kwargs)
+    groq_key = getattr(settings, "groq_api_key", None)
+    if enable_failover and groq_key and len(str(groq_key).strip()) > 0:
+        secondary = SafeGroqProvider.from_settings(settings, **kwargs)
+        return ResilientFailoverProvider(
+            primary=primary,
+            secondary=secondary,
+            primary_name="Gemini",
+            secondary_name="Groq",
+        )
+    return primary

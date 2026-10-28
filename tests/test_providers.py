@@ -716,3 +716,41 @@ def test_suppress_tracing_boundary_prevents_chat_model_child_runs():
             chat.invoke(f"Coordinator prompt with {secret_marker}")
 
     assert len(cb_suppressed.traced_runs) == 0
+
+
+def test_resilient_failover_provider_on_quota_exhaustion():
+    """ResilientFailoverProvider automatically fails over to Groq when Gemini hits 429 quota."""
+    from pydantic import BaseModel
+    from asterline.providers import (
+        FakeLLMProvider,
+        FakeLLMResponse,
+        ResilientFailoverProvider,
+    )
+
+    class DummyModel(BaseModel):
+        ans: str
+
+    primary = FakeLLMProvider([
+        FakeLLMResponse(error="Rate limit: 429 RESOURCE_EXHAUSTED Quota exceeded"),
+        FakeLLMResponse(error="Rate limit: 429 RESOURCE_EXHAUSTED Quota exceeded"),
+    ])
+    secondary = FakeLLMProvider([
+        FakeLLMResponse(text="Answer from secondary Groq provider"),
+        FakeLLMResponse(structured={"ans": "structured_answer_from_groq"}),
+    ])
+
+    failover = ResilientFailoverProvider(
+        primary=primary,
+        secondary=secondary,
+        primary_name="Gemini",
+        secondary_name="Groq",
+    )
+
+    res_text = failover.invoke("Test query")
+    assert res_text == "Answer from secondary Groq provider"
+
+    res_struct = failover.invoke_structured("Test query", DummyModel)
+    assert isinstance(res_struct, DummyModel)
+    assert res_struct.ans == "structured_answer_from_groq"
+    assert primary.call_count == 2
+    assert secondary.call_count == 2
